@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Captcha</title>
+        <meta charset="utf-8">
+        <script src="captcha/script.js"></script>
+        <link rel="stylesheet" type="text/css" href="captcha/estilo.css">
+    </head>
+    <body>
+    </body>
+    <script>
+        var captcha = new LSICaptcha();
+        captcha.criar(
+            document.querySelector('body'),
+            '../server-side/captcha-ws.php',
+            '../server-side/captcha-img.php'
+        );
+    </script>
+</html>

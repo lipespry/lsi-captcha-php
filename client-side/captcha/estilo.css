@@ -1,0 +1,46 @@
+div.lsi-captcha > div {
+    width: 100%;
+    background-image: url('loading1.gif');
+    background-size: 65px 65px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+div.lsi-captcha > div > img {
+    display: block;
+    opacity: 0;
+    width: 200px;
+    height: 80px;
+    margin: 0 auto;
+}
+div.lsi-captcha > div > img.mostra {
+    animation: mostraCaptchaImg 1s 1 forwards;
+}
+div.lsi-captcha > div > img.esconde {
+    animation: escondeCaptchaImg 1s 1 forwards;
+}
+@keyframes escondeCaptchaImg {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+@keyframes mostraCaptchaImg {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    30% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
