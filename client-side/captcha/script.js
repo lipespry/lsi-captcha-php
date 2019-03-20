@@ -1,10 +1,20 @@
 function LSICaptcha()
 {
-    this.status = 0;
+    /*
+     * captchaStatus
+     * 0: instanciado - valor inicial
+     * 1: criação ou renovação em andamento
+     * 2: criado e pronto (mesmo em caso de erro)
+     */
+    this.captchaStatus = 0;
 
     this.criar = function(alvo, ws, imgSrc)
     {
         let lsiCaptcha = this;
+
+        if (lsiCaptcha.captchaStatus !== 0)
+            return false;
+
         lsiCaptcha.webservice = ws;
         lsiCaptcha.imgLink = imgSrc;
 
@@ -14,7 +24,7 @@ function LSICaptcha()
 
         // inpId
         lsiCaptcha.inpId = document.createElement('input');
-        lsiCaptcha.inpId.setAttribute('type', 'text');
+        lsiCaptcha.inpId.setAttribute('type', 'hidden');
         lsiCaptcha.inpId.setAttribute('name', 'captchaId');
         lsiCaptcha.container.appendChild(lsiCaptcha.inpId);
 
@@ -22,13 +32,20 @@ function LSICaptcha()
         lsiCaptcha.dvCont = document.createElement('div');
         lsiCaptcha.container.appendChild(lsiCaptcha.dvCont);
 
+        // dvStatus
+        lsiCaptcha.dvStatus = document.createElement('div');
+        lsiCaptcha.dvStatus.classList.add('mostraLoading');
+        lsiCaptcha.dvCont.appendChild(lsiCaptcha.dvStatus);
+
         // img (200x80)
         lsiCaptcha.img = document.createElement('img');
 
         lsiCaptcha.img.onload = function() {
             lsiCaptcha.img.classList.add('mostra');
+            lsiCaptcha.dvStatus.classList.remove('mostraLoading');
             if (lsiCaptcha.img.classList.contains('esconde'))
                 lsiCaptcha.img.classList.remove('esconde');
+            lsiCaptcha.captchaStatus = 2;
         }
 
         lsiCaptcha.dvCont.appendChild(lsiCaptcha.img);
@@ -37,13 +54,6 @@ function LSICaptcha()
         lsiCaptcha.linkRenovar = document.createElement('a');
         lsiCaptcha.linkRenovar.setAttribute('href', 'javascript: void(0);');
         lsiCaptcha.linkRenovar.innerText = 'Gerar novo código';
-        lsiCaptcha.linkRenovar.addEventListener(
-            'click',
-            function(){
-                lsiCaptcha.renova();
-            },
-            false
-        );
         lsiCaptcha.container.appendChild(lsiCaptcha.linkRenovar);
 
         // adiciona ao HTML
@@ -56,17 +66,40 @@ function LSICaptcha()
          ************************************/
         lsiCaptcha.renova();
 
+        // evento 'click' no link para renovação
+        lsiCaptcha.linkRenovar.addEventListener(
+            'click',
+            function(){
+                if (lsiCaptcha.captchaStatus === 1)
+                    return false;
+                else
+                    lsiCaptcha.renova();
+            },
+            false
+        );
     }
 
     this.renova = function()
     {
-        let ajax = new XMLHttpRequest();
         let lsiCaptcha = this;
 
+        if (lsiCaptcha.captchaStatus === 1) {
+            alert('Em andamento. Aguarde.');
+            return false;
+        }
+
+        lsiCaptcha.captchaStatus = 1;
+
+        if (lsiCaptcha.dvStatus.classList.contains('mostraErro'))
+            lsiCaptcha.dvStatus.classList.remove('mostraErro');
+
+        lsiCaptcha.dvStatus.classList.add('mostraLoading');
         if (lsiCaptcha.img.classList.contains('mostra')) {
             lsiCaptcha.img.classList.add('esconde');
             lsiCaptcha.img.classList.remove('mostra');
         }
+
+        let ajax = new XMLHttpRequest();
 
         ajax.open(
             'get',
@@ -78,26 +111,52 @@ function LSICaptcha()
         );
 
         ajax.onreadystatechange = function() {
-            if (
-                ajax.readyState === 4
-                && ajax.status >= 200
-                && ajax.status <= 400
-            ) {
-                let data = JSON.parse(ajax.responseText);
-                if (data.sucesso === true) {
-                    lsiCaptcha.renovaExec(data.resultado);
+            if (ajax.readyState === 4) {
+                if (ajax.status < 400) {
+                    let data = JSON.parse(ajax.responseText);
+
+                    if (data.sucesso === true) {
+                        lsiCaptcha.execSucesso(data.resultado);
+                    } else
+                        lsiCaptcha.execErro(
+                            'O servidor retornou uma resposta inválida.'
+                        );
                 } else
-                    console.log('Erro ao renovar captcha!');
+                    lsiCaptcha.execErro(ajax.statusText);
             }
         }
 
         ajax.send(null);
     }
 
-    this.renovaExec = function(cod)
+    this.execSucesso = function(cod)
     {
-        this.img.setAttribute('src', this.imgLink+'?id='+cod);
-        this.inpId.setAttribute('value', cod);
+        let lsiCaptcha = this;
+
+        lsiCaptcha.img.setAttribute('src', lsiCaptcha.imgLink+'?id='+cod);
+        lsiCaptcha.inpId.setAttribute('value', cod);
+    }
+
+    this.execErro = function(msg)
+    {
+        let lsiCaptcha = this;
+
+        if (lsiCaptcha.dvStatus.classList.contains('mostraLoading'))
+            lsiCaptcha.dvStatus.classList.remove('mostraLoading');
+
+        lsiCaptcha.dvStatus.classList.add('mostraErro');
+
+        setTimeout(
+            function() {
+                if (typeof lsiCaptcha.onerro === 'function')
+                    lsiCaptcha.onerro(msg);
+                else
+                    console.log('LSICaptcha erro: '+msg);
+            },
+            300
+        );
+
+        lsiCaptcha.captchaStatus = 2;
     }
 }
 
@@ -112,15 +171,18 @@ function LSICaptcha()
  *     <input
  *         type="hidden"
  *         name="captchaId"
- *         value="[ID DO CAPTCHA]">
+ *         value="<<<ID DO CAPTCHA>>>">
  *
  *     === dvCont
  *     <div>
  *
+ *         === dvStatus
+ *         <div class="[mostraLoading[, mostraErro]]"></div>
+ *
  *         === img
- *         <img src="captcha?id=<?php
- *             echo $this->view->captchaId;
- *         ?>">
+ *         <img
+ *             src="<<<URL DA IMG>>>?id=<<<ID DO CAPTCHA>>>"
+ *             class="[mostra [esconde]]">
  *
  *     </div>
  *

@@ -10,6 +10,9 @@
     </body>
     <script>
         var captcha = new LSICaptcha();
+        captcha.onerro = function(param1){
+            alert('Erro no captcha: '+param1);
+        }
         captcha.criar(
             document.querySelector('body'),
             '../server-side/captcha-ws.php',

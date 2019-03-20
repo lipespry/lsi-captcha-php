@@ -1,9 +1,38 @@
 div.lsi-captcha > div {
+    position: relative;
+    width: 200px;
+    margin: 0 auto;
+}
+div.lsi-captcha > div > div {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    background-image: url('loading1.gif');
-    background-size: 65px 65px;
-    background-position: center;
+    height: 100%;
+    background-size: 80px 80px;
     background-repeat: no-repeat;
+    background-position: center;
+    z-index: -1;
+
+    opacity: 0;
+    transition: opacity 1s linear 0s;
+}
+div.lsi-captcha > div > div.mostraLoading {
+    opacity: 1;
+    background-image: url('loading.png');
+    animation: lsiCaptchaLoading 2s infinite linear;
+}
+div.lsi-captcha > div > div.mostraErro {
+    opacity: 1;
+    background-image: url('erro.png');
+}
+@keyframes lsiCaptchaLoading {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 div.lsi-captcha > div > img {
     display: block;
