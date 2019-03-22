@@ -1,5 +1,34 @@
-function LSICaptcha()
+function LSICaptcha(opcoesUsuario)
 {
+    'use strict';
+
+    // Extendendo escopo da instância
+    let lsiCaptcha = this;
+
+    // Opções padrão
+    this.padrao = {
+        // Elemento alvo para o captcha ser renderizado
+        // Ex.: <div id="captchaAqui"></div>
+        alvo: document.getElementById('captchaAqui'),
+
+        // Endereço do webservice que gera o captcha
+        webservice: 'captcha-ws.php',
+
+        // Endereço do webservice que retorna a imagem do captcha
+        img: 'captcha-img.php', // imagem+'?id='+cod
+
+        // Callback em caso de erro
+        // Parâmetro único com a mensagem do erro
+        // Nota: não é erro do usuário digitar captcha errado, mas
+        // erro de funcionalidade. Por exemplo: webservice offline.
+        erro: function(msg){
+            console.log(
+                'LSICaptcha erro'
+                +(typeof msg == 'string' ? ': '+msg : '')
+            );
+        }
+    }
+
     /*
      * captchaStatus
      * 0: instanciado - valor inicial
@@ -8,16 +37,8 @@ function LSICaptcha()
      */
     this.captchaStatus = 0;
 
-    this.criar = function(alvo, ws, imgSrc)
+    this.criar = function()
     {
-        let lsiCaptcha = this;
-
-        if (lsiCaptcha.captchaStatus !== 0)
-            return false;
-
-        lsiCaptcha.webservice = ws;
-        lsiCaptcha.imgLink = imgSrc;
-
         // container
         lsiCaptcha.container = document.createElement('div');
         lsiCaptcha.container.classList.add('lsi-captcha');
@@ -37,18 +58,18 @@ function LSICaptcha()
         lsiCaptcha.dvStatus.classList.add('mostraLoading');
         lsiCaptcha.dvCont.appendChild(lsiCaptcha.dvStatus);
 
-        // img (200x80)
-        lsiCaptcha.img = document.createElement('img');
+        // capImg (200x80)
+        lsiCaptcha.capImg = document.createElement('img');
 
-        lsiCaptcha.img.onload = function() {
-            lsiCaptcha.img.classList.add('mostra');
+        lsiCaptcha.capImg.onload = function() {
+            lsiCaptcha.capImg.classList.add('mostra');
             lsiCaptcha.dvStatus.classList.remove('mostraLoading');
-            if (lsiCaptcha.img.classList.contains('esconde'))
-                lsiCaptcha.img.classList.remove('esconde');
+            if (lsiCaptcha.capImg.classList.contains('esconde'))
+                lsiCaptcha.capImg.classList.remove('esconde');
             lsiCaptcha.captchaStatus = 2;
         }
 
-        lsiCaptcha.dvCont.appendChild(lsiCaptcha.img);
+        lsiCaptcha.dvCont.appendChild(lsiCaptcha.capImg);
 
         // linkRenovar
         lsiCaptcha.linkRenovar = document.createElement('a');
@@ -57,7 +78,7 @@ function LSICaptcha()
         lsiCaptcha.container.appendChild(lsiCaptcha.linkRenovar);
 
         // adiciona ao HTML
-        alvo.appendChild(lsiCaptcha.container);
+        lsiCaptcha.alvo.appendChild(lsiCaptcha.container);
 
         /*
          * - consome o ws;
@@ -81,7 +102,6 @@ function LSICaptcha()
 
     this.renova = function()
     {
-        let lsiCaptcha = this;
 
         if (lsiCaptcha.captchaStatus === 1) {
             alert('Em andamento. Aguarde.');
@@ -94,9 +114,9 @@ function LSICaptcha()
             lsiCaptcha.dvStatus.classList.remove('mostraErro');
 
         lsiCaptcha.dvStatus.classList.add('mostraLoading');
-        if (lsiCaptcha.img.classList.contains('mostra')) {
-            lsiCaptcha.img.classList.add('esconde');
-            lsiCaptcha.img.classList.remove('mostra');
+        if (lsiCaptcha.capImg.classList.contains('mostra')) {
+            lsiCaptcha.capImg.classList.add('esconde');
+            lsiCaptcha.capImg.classList.remove('mostra');
         }
 
         let ajax = new XMLHttpRequest();
@@ -131,15 +151,13 @@ function LSICaptcha()
 
     this.execSucesso = function(cod)
     {
-        let lsiCaptcha = this;
 
-        lsiCaptcha.img.setAttribute('src', lsiCaptcha.imgLink+'?id='+cod);
+        lsiCaptcha.capImg.setAttribute('src', lsiCaptcha.img+'?id='+cod);
         lsiCaptcha.inpId.setAttribute('value', cod);
     }
 
     this.execErro = function(msg)
     {
-        let lsiCaptcha = this;
 
         if (lsiCaptcha.dvStatus.classList.contains('mostraLoading'))
             lsiCaptcha.dvStatus.classList.remove('mostraLoading');
@@ -148,8 +166,8 @@ function LSICaptcha()
 
         setTimeout(
             function() {
-                if (typeof lsiCaptcha.onerro === 'function')
-                    lsiCaptcha.onerro(msg);
+                if (typeof lsiCaptcha.erro === 'function')
+                    lsiCaptcha.erro(msg);
                 else
                     console.log('LSICaptcha erro: '+msg);
             },
@@ -158,6 +176,19 @@ function LSICaptcha()
 
         lsiCaptcha.captchaStatus = 2;
     }
+
+    // Preparação das opções
+    for (let opcao in this.padrao) {
+        this[opcao] = this.padrao[opcao];
+    }
+    if (typeof opcoesUsuario == 'object') {
+        for (let opcao in opcoesUsuario) {
+            this[opcao] = opcoesUsuario[opcao];
+        }
+    }
+
+    // Renderização do captcha
+    lsiCaptcha.criar();
 }
 
 /*
@@ -179,7 +210,7 @@ function LSICaptcha()
  *         === dvStatus
  *         <div class="[mostraLoading[, mostraErro]]"></div>
  *
- *         === img
+ *         === capImg
  *         <img
  *             src="<<<URL DA IMG>>>?id=<<<ID DO CAPTCHA>>>"
  *             class="[mostra [esconde]]">

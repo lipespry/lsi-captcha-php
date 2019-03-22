@@ -9,14 +9,13 @@
     <body>
     </body>
     <script>
-        var captcha = new LSICaptcha();
-        captcha.onerro = function(param1){
-            alert('Erro no captcha: '+param1);
-        }
-        captcha.criar(
-            document.querySelector('body'),
-            '../server-side/captcha-ws.php',
-            '../server-side/captcha-img.php'
-        );
+        let captcha = new LSICaptcha({
+            webservice: '../server-side/captcha-ws.php',
+            img: '../server-side/captcha-img.php',
+            alvo: document.querySelector('body'),
+            erro: function(param1){
+                alert('Erro no captcha: '+param1);
+            }
+        });
     </script>
 </html>
